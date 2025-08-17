@@ -2262,19 +2262,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/samir/.nuget/packages/": {}
+    "C:\\Users\\HP\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/Infrastructure.csproj",
+      "projectUniqueName": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\Infrastructure\\Infrastructure.csproj",
       "projectName": "Infrastructure",
-      "projectPath": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/Infrastructure.csproj",
-      "packagesPath": "/Users/samir/.nuget/packages/",
-      "outputPath": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/obj/",
+      "projectPath": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\Infrastructure\\Infrastructure.csproj",
+      "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/samir/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -2292,7 +2292,13 @@
         "warnAsError": [
           "NU1605"
         ]
-      }
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net8.0": {
@@ -2325,7 +2331,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.100/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.109/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

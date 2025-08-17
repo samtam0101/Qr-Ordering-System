@@ -1,0 +1,69 @@
+services:
+  admin-app:
+    image: ayubov012/qr-admin
+    container_name: qr-admin
+    build:
+      context: .
+      dockerfile: AdminApp/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5101:8080"   
+    volumes:
+      - admin_uploads:/app/wwwroot/uploads
+    depends_on:
+      - db
+    networks: [qr-suite]
+
+  guest-app:
+    image: ayubov012/qr-guest
+    build:
+      context: .
+      dockerfile: GuestApp/Dockerfile
+    container_name: qr-guest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5102:8080"
+    networks: [qr-suite]
+    depends_on:
+      - db
+
+  kds-app:
+    image: ayubov012/qr-kds
+    build:
+      context: .
+      dockerfile: KdsApp/Dockerfile
+      args:
+        BUILD_CONFIGURATION: Release
+    container_name: qr-kds
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5103:8080"
+    networks: [qr-suite]
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: qr-db
+    environment:
+      POSTGRES_DB: qrdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "$$amir001"
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks: [qr-suite]
+
+networks:
+  qr-suite:
+
+volumes:
+  admin_uploads:
+  pg-data:

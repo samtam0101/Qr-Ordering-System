@@ -39,6 +39,22 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+try
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<AppDbContext>();
+    
+    await context.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(context);
+
+    app.Logger.LogInformation("Finished seeding default data");
+}
+catch (Exception e)
+{
+    app.Logger.LogInformation("An error occurred while seeding the db: {ExMessage}", e.Message);
+}
+
 // Middleware
 app.UseStaticFiles();
 
