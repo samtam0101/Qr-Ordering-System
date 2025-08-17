@@ -1,0 +1,37 @@
+body { background:#0b1220; color:#e5e7eb; }
+.kds-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:16px;
+}
+.kds-col-title{
+  font-weight:600;
+  padding:8px 12px;
+  border-radius:8px;
+  margin-bottom:8px;
+  color:#0b1220;
+}
+.kds-card{
+  background:#111827;
+  border:1px solid #1f2937;
+  border-radius:16px;
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+.kds-items{
+  list-style:none;
+  padding-left:0;
+  margin:10px 0 12px;
+}
+.kds-items li{
+  border-bottom:1px dashed #374151;
+  padding:4px 0;
+}
+.btn-primary{
+  background-color:#2563eb;
+  border-color:#2563eb;
+}
+@media (max-width: 1080px){
+  .kds-grid{ grid-template-columns: 1fr; }
+}

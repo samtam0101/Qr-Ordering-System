@@ -1,0 +1,303 @@
+@page "/menu"
+@using Infrastructure.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Globalization
+@using System.Net.Http.Json
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<h3>Menu</h3>
+
+@if (_rests.Count == 0)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <div class="mb-3" style="display:flex;align-items:center;gap:8px;">
+        <select value="@_restaurantId" @onchange="OnRestaurantChange" class="form-select" style="width:220px;">
+            @foreach (var r in _rests)
+            {
+                <option value="@r.Id">@r.Name</option>
+            }
+        </select>
+        <button class="btn btn-sm btn-outline-primary" @onclick="NewCategory">+ Category</button>
+        <span class="ms-2" style="color:#6b7280">@_msg</span>
+    </div>
+
+    @foreach (var c in _cats)
+    {
+        <div class="card mb-3" style="padding:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                @if (IsEditingCat(c.Id))
+                {
+                    <input class="form-control" value="@_editCatName[c.Id]"
+                           @oninput="e => _editCatName[c.Id] = e.Value?.ToString() ?? string.Empty"
+                           style="max-width:280px;" />
+                    <button class="btn btn-sm btn-success" @onclick="() => SaveCat(c.Id)">Save</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => CancelCat(c.Id)">Cancel</button>
+                }
+                else
+                {
+                    <h5 style="margin:0">@c.Name</h5>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="() => StartCat(c)">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCat(c.Id)">Delete</button>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="() => NewItem(c.Id)">+ Item</button>
+                }
+            </div>
+
+            <table class="table table-sm mt-2 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width:16%">Name</th>
+                        <th style="width:10%">Price</th>
+                        <th style="width:30%">Description</th>
+                        <th style="width:24%">Image</th>
+                        <th style="width:8%">Avail</th>
+                        <th style="width:12%"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var m in c.Items.OrderBy(i => i.Name))
+                {
+                    <tr>
+                        @if (IsEditingItem(m.Id))
+                        {
+                            <td>
+                                <input class="form-control"
+                                       value="@_editItemName[m.Id]"
+                                       @oninput="e => _editItemName[m.Id] = e.Value?.ToString() ?? string.Empty" />
+                            </td>
+                            <td>
+                                <input class="form-control"
+                                       value="@_editItemPrice[m.Id]"
+                                       @oninput="e => _editItemPrice[m.Id] = e.Value?.ToString() ?? string.Empty" />
+                            </td>
+                            <td>
+                                <textarea class="form-control" rows="2" placeholder="Description"
+                                          @oninput="e => _editItemDesc[m.Id] = e.Value?.ToString() ?? string.Empty">@_editItemDesc.GetValueOrDefault(m.Id, m.Description ?? "")</textarea>
+                            </td>
+                            <td>
+                                <div style="display:flex;flex-direction:column;gap:6px;">
+                                    <InputFile OnChange="e => OnPickImage(e, m.Id)" />
+                                    @if (_uploadingItemId == m.Id)
+                                    {
+                                        <small style="color:#6b7280">Uploading…</small>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(_editItemImage.GetValueOrDefault(m.Id)))
+                                    {
+                                        <div style="display:flex;align-items:center;gap:8px;">
+                                            <img src="@_editItemImage[m.Id]" alt="img" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" />
+                                            <a href="@_editItemImage[m.Id]" target="_blank"><small>@_editItemImage[m.Id]</small></a>
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <input type="checkbox"
+                                       checked="@_editItemAvail[m.Id]"
+                                       @onchange="e => _editItemAvail[m.Id] = ToBool(e.Value)" />
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success" @onclick="() => SaveItem(m.Id)">Save</button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => CancelItem(m.Id)">Cancel</button>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>@m.Name</td>
+                            <td>@m.Price.ToString("0.00")</td>
+                            <td style="white-space:pre-wrap">@m.Description</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(m.ImageUrl))
+                                {
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <img src="@m.ImageUrl" alt="img" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" />
+                                        <a href="@m.ImageUrl" target="_blank"><small>@m.ImageUrl</small></a>
+                                    </div>
+                                }
+                            </td>
+                            <td><input type="checkbox" checked="@m.IsAvailable" disabled /></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => StartItem(m)">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteItem(m.Id)">Delete</button>
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    // --- state
+    private List<Restaurant> _rests = new();
+    private int _restaurantId;
+    private List<MenuCategory> _cats = new();
+    private string _msg = "";
+
+    // category edit state
+    private readonly HashSet<int> _editCats = new();
+    private readonly Dictionary<int,string> _editCatName = new();
+
+    // item edit state
+    private readonly HashSet<int> _editItems = new();
+    private readonly Dictionary<int,string> _editItemName  = new();
+    private readonly Dictionary<int,string> _editItemPrice = new();
+    private readonly Dictionary<int,string> _editItemDesc  = new();
+    private readonly Dictionary<int,string> _editItemImage = new();
+    private readonly Dictionary<int,bool>   _editItemAvail = new();
+
+    // upload
+    private int _uploadingItemId = 0;
+
+    // ---- lifecycle
+    protected override async Task OnInitializedAsync()
+    {
+        _rests = await Db.Restaurants.OrderBy(r => r.Name).ToListAsync();
+        if (_rests.Count > 0)
+        {
+            _restaurantId = _rests[0].Id;
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        _cats = await Db.MenuCategories.Include(c => c.Items)
+                   .Where(c => c.RestaurantId == _restaurantId)
+                   .OrderBy(c => c.Name).ToListAsync();
+        _msg = "";
+        StateHasChanged();
+    }
+
+    private async Task OnRestaurantChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            _restaurantId = id;
+            await Load();
+        }
+    }
+
+    // ---- category helpers
+    private bool IsEditingCat(int id) => _editCats.Contains(id);
+    private void StartCat(MenuCategory c) { _editCats.Add(c.Id); _editCatName[c.Id] = c.Name; }
+    private void CancelCat(int id) { _editCats.Remove(id); _editCatName.Remove(id); }
+    private async Task SaveCat(int id)
+    {
+        var c = await Db.MenuCategories.FirstAsync(x => x.Id == id);
+        c.Name = (_editCatName[id] ?? "").Trim();
+        await Db.SaveChangesAsync();
+        CancelCat(id);
+        await Load();
+        _msg = "Category updated.";
+    }
+    private async Task DeleteCat(int id)
+    {
+        var c = await Db.MenuCategories.Include(x => x.Items).FirstAsync(x => x.Id == id);
+        if (c.Items.Count > 0) { _msg = "Delete items first."; return; }
+        Db.MenuCategories.Remove(c);
+        await Db.SaveChangesAsync();
+        await Load();
+        _msg = "Category deleted.";
+    }
+    private async Task NewCategory()
+    {
+        Db.MenuCategories.Add(new MenuCategory { Name = "New Category", RestaurantId = _restaurantId });
+        await Db.SaveChangesAsync();
+        await Load();
+        _msg = "Category created.";
+    }
+
+    // ---- item helpers
+    private bool IsEditingItem(int id) => _editItems.Contains(id);
+    private void StartItem(MenuItem m)
+    {
+        _editItems.Add(m.Id);
+        _editItemName[m.Id]  = m.Name;
+        _editItemPrice[m.Id] = m.Price.ToString("0.00", CultureInfo.InvariantCulture);
+        _editItemDesc[m.Id]  = m.Description ?? "";
+        _editItemImage[m.Id] = m.ImageUrl ?? "";
+        _editItemAvail[m.Id] = m.IsAvailable;
+    }
+    private void CancelItem(int id)
+    {
+        _editItems.Remove(id);
+        _editItemName.Remove(id);
+        _editItemPrice.Remove(id);
+        _editItemDesc.Remove(id);
+        _editItemImage.Remove(id);
+        _editItemAvail.Remove(id);
+    }
+    private async Task SaveItem(int id)
+    {
+        var it = await Db.MenuItems.FirstAsync(x => x.Id == id);
+        it.Name = (_editItemName[id] ?? "").Trim();
+
+        if (decimal.TryParse(_editItemPrice[id], NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+            it.Price = p;
+
+        it.Description = _editItemDesc.TryGetValue(id, out var d) ? d?.Trim() : it.Description;
+        it.ImageUrl    = _editItemImage.TryGetValue(id, out var u) ? (string.IsNullOrWhiteSpace(u) ? null : u.Trim()) : it.ImageUrl;
+        it.IsAvailable = _editItemAvail.TryGetValue(id, out var a) ? a : it.IsAvailable;
+
+        await Db.SaveChangesAsync();
+        CancelItem(id);
+        await Load();
+        _msg = "Item updated.";
+    }
+    private async Task DeleteItem(int id)
+    {
+        var it = await Db.MenuItems.FirstAsync(x => x.Id == id);
+        Db.MenuItems.Remove(it);
+        await Db.SaveChangesAsync();
+        await Load();
+        _msg = "Item deleted.";
+    }
+    private async Task NewItem(int catId)
+    {
+        Db.MenuItems.Add(new MenuItem { MenuCategoryId = catId, Name = "New Item", Price = 0m, IsAvailable = true });
+        await Db.SaveChangesAsync();
+        await Load();
+        _msg = "Item created.";
+    }
+
+    // ---- upload
+    private async Task OnPickImage(InputFileChangeEventArgs e, int itemId)
+    {
+        try
+        {
+            _uploadingItemId = itemId;
+            var file = e.File;
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(50 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            using var http = new HttpClient { BaseAddress = new Uri(Nav.BaseUri) };
+            var res = await http.PostAsync("api/uploads/menu-image", content);
+            res.EnsureSuccessStatusCode();
+            var json = await res.Content.ReadFromJsonAsync<UploadResp>();
+            _editItemImage[itemId] = json?.url ?? "";
+        }
+        finally
+        {
+            _uploadingItemId = 0;
+        }
+    }
+
+    private class UploadResp { public string url { get; set; } = ""; }
+
+    // ---- small helpers
+    private static bool ToBool(object? v)
+    {
+        if (v is bool b) return b;
+        var s = v?.ToString()?.ToLowerInvariant();
+        return s == "true" || s == "on" || s == "1";
+    }
+}

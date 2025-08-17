@@ -1,0 +1,10 @@
+@page "/"
+@inject NavigationManager Nav
+
+<h3>Guest</h3>
+<p>This opens a demo restaurant and table (auto-created if missing).</p>
+<button @onclick="OpenDemo">Open demo table</button>
+
+@code {
+    private void OpenDemo() => Nav.NavigateTo("/table/demo/D1");
+}

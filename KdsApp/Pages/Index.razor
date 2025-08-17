@@ -1,0 +1,274 @@
+@page "/"
+@using Infrastructure.Models
+@using Microsoft.EntityFrameworkCore
+@inject Infrastructure.AppDbContext Db
+@using Microsoft.JSInterop  
+@inject IJSRuntime JS
+
+<div style="background:#0f172a;color:#e5e7eb;min-height:100vh;padding:12px 16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-weight:700;">Kitchen Display</div>
+        <div style="display:flex;gap:10px;align-items:center;font-size:.9rem;color:#94a3b8;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" @bind="_soundEnabled" />
+                Sound alerts
+            </label>
+            <button class="kbtn outline" @onclick="TestBeep">Test sound</button>
+            <span style="opacity:.7">Auto-refresh 5s</span>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div style="color:#ef4444;margin:8px 0;">@_error</div>
+    }
+
+    @if (_loading)
+    {
+        <div style="display:flex;justify-content:center;align-items:center;height:240px;">
+            <div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#e5e7eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        </div>
+    }
+    else
+    {
+        <section style="margin-top:12px;">
+            <h4 style="margin:0 0 8px 0;">Ready <span class="chip">@_ready.Count</span></h4>
+            @Row(_ready)
+        </section>
+
+        <section style="margin-top:20px;">
+            <h4 style="margin:0 0 8px 0;">In Progress <span class="chip">@_inprog.Count</span></h4>
+            @Row(_inprog)
+        </section>
+
+        <section style="margin-top:20px;">
+            <h4 style="margin:0 0 8px 0;">Submitted <span class="chip">@_submitted.Count</span></h4>
+            @Row(_submitted)
+        </section>
+
+        <section style="margin-top:20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h4 style="margin:0;">Served (last 20)</h4>
+                <label style="font-size:.9rem;color:#94a3b8;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" @bind="_showServed" />
+                    Show
+                </label>
+                <span class="chip" style="margin-left:6px">@_served.Count</span>
+            </div>
+            @if (_showServed)
+            {
+                @Row(_served, showActions:false)
+            }
+        </section>
+    }
+</div>
+
+<audio @ref="_beep" preload="auto" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYBWFlaAAABAAACAA8A/////wAAAP//AAD///8AAP//AAAAAA==" />
+
+<style>
+@@keyframes spin { to { transform: rotate(360deg); } }
+.kbtn{background:#2563eb;border:none;color:white;padding:6px 10px;border-radius:8px;cursor:pointer}
+.kbtn:hover{opacity:.9}
+.kbtn.outline{background:transparent;border:1px solid #374151;color:#e5e7eb}
+.kbtn.outline:hover{background:#111827}
+.chip{background:#1f2937;border:1px solid #374151;border-radius:999px;padding:0 8px;font-size:.8rem}
+</style>
+
+@code {
+    private List<Order> _ready = new();
+    private List<Order> _inprog = new();
+    private List<Order> _submitted = new();
+    private List<Order> _served = new();
+
+    private bool _loading = true;
+    private string? _error;
+    private bool _showServed = false;
+
+    // sound + change detection
+    private ElementReference _beep;
+    private bool _soundEnabled;
+    private bool _pendingBeep;
+    private HashSet<int> _prevSubmitted = new();
+    private HashSet<int> _prevReady = new();
+
+    private PeriodicTimer? _timer;
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        _ = RefreshLoop();
+    }
+
+    private async Task RefreshLoop()
+    {
+        try
+        {
+            while (await _timer!.WaitForNextTickAsync(_cts.Token))
+            {
+                await LoadOrders();
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task LoadOrders()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+
+            var all = await Db.Orders
+                .Include(o => o.Items).ThenInclude(i => i.MenuItem)
+                .Include(o => o.DiningTable)
+                .Where(o => o.Status == OrderStatus.Submitted
+                         || o.Status == OrderStatus.InProgress
+                         || o.Status == OrderStatus.Ready
+                         || o.Status == OrderStatus.Served)
+                .ToListAsync();
+
+            _ready     = all.Where(o => o.Status == OrderStatus.Ready)      .OrderBy(o => o.CreatedAt).ToList();
+            _inprog    = all.Where(o => o.Status == OrderStatus.InProgress) .OrderBy(o => o.CreatedAt).ToList();
+            _submitted = all.Where(o => o.Status == OrderStatus.Submitted)  .OrderBy(o => o.CreatedAt).ToList();
+            _served    = all.Where(o => o.Status == OrderStatus.Served)     .OrderByDescending(o => o.CreatedAt).Take(20).ToList();
+
+            // decide if we should beep (new Submitted or first time Ready)
+            var curSubmitted = _submitted.Select(o => o.Id).ToHashSet();
+            var curReady     = _ready.Select(o => o.Id).ToHashSet();
+
+            if (_soundEnabled)
+            {
+                if (curSubmitted.Except(_prevSubmitted).Any() ||
+                    curReady.Except(_prevReady).Any())
+                {
+                    _pendingBeep = true;
+                }
+            }
+
+            _prevSubmitted = curSubmitted;
+            _prevReady = curReady;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingBeep)
+        {
+            _pendingBeep = false;
+            try { await JS.InvokeVoidAsync("kdsPlay", _beep); } catch { }
+        }
+    }
+
+    private async Task SetStatus(Order o, OrderStatus status)
+    {
+        try
+        {
+            var entity = await Db.Orders.FirstAsync(x => x.Id == o.Id);
+            entity.Status = status;
+            await Db.SaveChangesAsync();
+            await LoadOrders();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task TestBeep()
+    {
+        try { await JS.InvokeVoidAsync("kdsPlay", _beep); } catch { }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _timer?.Dispose();
+    }
+
+    // ---- UI helpers ----
+    private static int AgeMin(Order o)
+    {
+        var t = DateTime.SpecifyKind(o.CreatedAt, DateTimeKind.Utc);
+        return (int)Math.Floor((DateTime.UtcNow - t).TotalMinutes);
+    }
+
+    private static string CardStyle(Order o)
+    {
+        // SLA highlighting: 0-5m = normal, 6-10m = amber, >10m = red
+        var m = AgeMin(o);
+        var border = "#1f2937";
+        if (m > 10) border = "#b91c1c";
+        else if (m > 5) border = "#b45309";
+        return $"background:#111827;border:2px solid {border};border-radius:12px;padding:12px;min-width:300px;max-width:360px;";
+    }
+
+    RenderFragment Row(List<Order> orders, bool showActions = true) => __ =>
+    {
+        if (orders.Count == 0)
+        {
+            __.AddMarkupContent(0, "<div style='color:#94a3b8;'>No orders.</div>");
+            return;
+        }
+
+        __.AddMarkupContent(1, "<div style='display:flex;gap:12px;flex-wrap:wrap;'>");
+        foreach (var o in orders)
+        {
+            __.AddMarkupContent(2, $"<div style='{CardStyle(o)}'>");
+            __.OpenElement(3, "div");
+            __.AddAttribute(4, "style", "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;");
+            var tableText = o.DiningTable?.Code ?? ("#" + o.DiningTableId);
+            var age = AgeMin(o);
+            __.AddMarkupContent(5, $"<div><div style='font-weight:600;'>Order #{o.Id}</div><div style='font-size:.9rem;color:#9ca3af;'>Table: {tableText}</div></div>");
+            __.AddMarkupContent(6, $"<span class='chip'>{o.Status} • {age}m</span>");
+            __.CloseElement(); // header
+
+            __.AddMarkupContent(7, "<ul style='margin:0 0 8px 16px;padding:0;'>");
+            foreach (var it in (o.Items ?? new()).OrderBy(i => i.MenuItem?.Name))
+            {
+                var name = it.MenuItem?.Name ?? ("Item " + it.MenuItemId);
+                __.AddMarkupContent(8, $"<li style='margin-bottom:4px;'><span style='color:#cbd5e1;'>{it.Quantity}×</span> {name}</li>");
+            }
+            __.AddMarkupContent(9, "</ul>");
+
+            if (showActions)
+            {
+                __.AddMarkupContent(10, "<div style='display:flex;gap:8px;flex-wrap:wrap;'>");
+                if (o.Status == OrderStatus.Submitted)
+                {
+                    __.OpenElement(11, "button"); __.AddAttribute(12, "class", "kbtn"); __.AddAttribute(13, "onclick", EventCallback.Factory.Create(this, () => SetStatus(o, OrderStatus.InProgress))); __.AddContent(14, "Start"); __.CloseElement();
+                    __.OpenElement(15, "button"); __.AddAttribute(16, "class", "kbtn outline"); __.AddAttribute(17, "onclick", EventCallback.Factory.Create(this, () => SetStatus(o, OrderStatus.Ready))); __.AddContent(18, "Mark Ready"); __.CloseElement();
+                }
+                else if (o.Status == OrderStatus.InProgress)
+                {
+                    __.OpenElement(19, "button"); __.AddAttribute(20, "class", "kbtn"); __.AddAttribute(21, "onclick", EventCallback.Factory.Create(this, () => SetStatus(o, OrderStatus.Ready))); __.AddContent(22, "Mark Ready"); __.CloseElement();
+                }
+                else if (o.Status == OrderStatus.Ready)
+                {
+                    __.OpenElement(23, "button"); __.AddAttribute(24, "class", "kbtn"); __.AddAttribute(25, "onclick", EventCallback.Factory.Create(this, () => SetStatus(o, OrderStatus.Served))); __.AddContent(26, "Served"); __.CloseElement();
+                }
+                __.AddMarkupContent(27, "</div>");
+            }
+
+            __.AddMarkupContent(28, "</div>"); // card
+        }
+        __.AddMarkupContent(29, "</div>"); // row container
+    };
+}
+
+@* JS helper to reliably play audio after a user gesture *@
+<script>
+    window.kdsPlay = (el) => {
+        try { el && el.play && el.play(); } catch { }
+    };
+</script>

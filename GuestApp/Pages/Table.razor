@@ -1,0 +1,77 @@
+@page "/table/{RestaurantSlug}/{TableCode}"
+@using Infrastructure
+@using Infrastructure.Models
+@using Microsoft.EntityFrameworkCore
+@inject Infrastructure.AppDbContext Db
+@inject NavigationManager Nav
+@inject GuestApp.Services.CartService Cart
+@inject IConfiguration Config
+
+<h3>@(_restaurant?.Name ?? "Menu")</h3>
+
+@if (_restaurant is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    @foreach (var c in _categories)
+    {
+        <h4>@c.Name</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+            @foreach (var m in (c.Items ?? new()).OrderBy(i => i.Name))
+            {
+                <div style="border:1px solid #e5e7eb;border-radius:12px;padding:10px;">
+                    @if (!string.IsNullOrWhiteSpace(m.ImageUrl))
+                    {
+                        <img src="@m.ImageUrl" alt="@m.Name" style="width:100%;height:140px;object-fit:cover;border-radius:8px;" />
+                    }
+                    <div style="font-weight:600;margin-top:6px;">@m.Name</div>
+                    @if (!string.IsNullOrWhiteSpace(m.Description))
+                    {
+                        <div style="font-size:.9rem;color:#666;">@m.Description</div>
+                    }
+                    <div style="margin-top:6px;font-weight:700;">@m.Price.ToString("0.00")</div>
+                    <button style="margin-top:8px;" @onclick="() => Add(m.Id)">Add</button>
+                </div>
+            }
+        </div>
+    }
+
+    <div style="position:fixed;right:16px;bottom:16px;">
+        <button @onclick="GoCheckout">Checkout (@_cartCount)</button>
+    </div>
+}
+
+@code {
+    [Parameter] public string? RestaurantSlug { get; set; }
+    [Parameter] public string? TableCode { get; set; }
+
+    private Restaurant? _restaurant;
+    private List<Infrastructure.Models.MenuCategory> _categories = new();
+    private int _cartCount;
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        _restaurant = await Db.Restaurants
+            .Include(r => r.Categories)!.ThenInclude(c => c.Items)
+            .FirstOrDefaultAsync(r => r.Slug == RestaurantSlug);
+
+        _categories = _restaurant?.Categories?.OrderBy(c => c.Name).ToList() ?? new();
+
+        await Cart.InitAsync(RestaurantSlug, TableCode);
+        var draft = await Cart.GetDraftAsync();
+        _cartCount = draft?.Items?.Sum(i => i.Quantity) ?? 0;
+    }
+
+    private async Task Add(int menuItemId)
+    {
+        await Cart.AddItemAsync(menuItemId, 1);
+        var draft = await Cart.GetDraftAsync();
+        _cartCount = draft?.Items?.Sum(i => i.Quantity) ?? 0;
+        StateHasChanged();
+    }
+
+    private void GoCheckout()
+        => Nav.NavigateTo($"/checkout/{RestaurantSlug}/{TableCode}");
+}

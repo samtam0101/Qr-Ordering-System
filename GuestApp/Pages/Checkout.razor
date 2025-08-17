@@ -1,0 +1,72 @@
+@page "/checkout/{RestaurantSlug}/{TableCode}"
+@inject GuestApp.Services.CartService Cart
+@inject NavigationManager Nav
+
+<h3>Checkout</h3>
+
+@if (_order is null)
+{
+    <p>Your cart is empty.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var it in _order.Items ?? new())
+        {
+            <tr>
+                <td>@it.MenuItem?.Name</td>
+                <td>@it.Quantity</td>
+                <td>@it.UnitPrice.ToString("0.00")</td>
+                <td>@(it.UnitPrice * it.Quantity).ToString("0.00")</td>
+            </tr>
+        }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" style="text-align:right;font-weight:700;">Total</td>
+                <td>@Cart.ComputeTotal(_order).ToString("0.00")</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div style="margin-top:12px;">
+        <button @onclick="Place">Place order (demo pay)</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_msg))
+    {
+        <p>@_msg</p>
+    }
+}
+
+@code {
+    [Parameter] public string? RestaurantSlug { get; set; }
+    [Parameter] public string? TableCode { get; set; }
+
+    private Infrastructure.Models.Order? _order;
+    private string? _msg;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Cart.InitAsync(RestaurantSlug, TableCode);
+        _order = await Cart.GetDraftAsync();
+    }
+
+    private async Task Place()
+    {
+        try
+        {
+            await Cart.PlaceOrderAsync();
+            _msg = "Order placed! You can track it in 'My Orders'.";
+            Nav.NavigateTo($"/orders/{RestaurantSlug}/{TableCode}");
+        }
+        catch (Exception ex)
+        {
+            _msg = ex.Message;
+        }
+    }
+}

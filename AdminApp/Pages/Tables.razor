@@ -1,0 +1,254 @@
+@page "/tables"
+@attribute [Authorize]
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject IJSRuntime JS
+@using Microsoft.EntityFrameworkCore
+@using Infrastructure.Models
+@using QRCoder
+
+<h3>Tables</h3>
+
+@if (_rests == null || _rests.Count == 0)
+{
+    <p>Loading…</p>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_msg))
+    {
+        <div class="alert @(_isError ? "alert-danger" : "alert-success")">@_msg</div>
+    }
+
+    <div class="mb-3">
+        <select value="@_restaurantId" @onchange="OnRestaurantChange">
+            @foreach (var r in _rests)
+            {
+                <option value="@r.Id">@r.Name</option>
+            }
+        </select>
+        <span class="ms-2">Seats:</span>
+        <input type="number" min="1" value="@_newSeats" @oninput="e => _newSeats = ToInt(e.Value, 2)" style="width:80px" />
+        <button class="btn btn-sm btn-outline-primary ms-2" @onclick="NewTable">+ Add Table</button>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width:140px">Code</th>
+                <th style="width:140px">Seats</th>
+                <th style="width:120px">QR</th>
+                <th>Link + Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _tables)
+            {
+                var url = BuildTableUrl(t);
+                var png = QrPng(t);
+                var fname = (_restaurantSlug ?? "restaurant") + "_" + t.Code + ".png";
+
+                <tr>
+                    <td>
+                        @if (IsEditing(t.Id))
+                        {
+                            <input class="form-control" value="@_editCode[t.Id]"
+                                   @oninput="e => _editCode[t.Id] = e.Value?.ToString() ?? string.Empty" />
+                        }
+                        else { @t.Code }
+                    </td>
+                    <td>
+                        @if (IsEditing(t.Id))
+                        {
+                            <input class="form-control" type="number" min="1" style="width:100px"
+                                   value="@_editSeats[t.Id]"
+                                   @oninput="e => _editSeats[t.Id] = ToInt(e.Value, t.Seats)" />
+                        }
+                        else
+                        {
+                            <input type="number" min="1" value="@t.Seats" style="width:100px"
+                                   @onchange="(e) => ChangeSeats(t, e)" />
+                        }
+                    </td>
+                    <td>
+                        <img src="@png" width="96" height="96" />
+                    </td>
+                    <td>
+                        <div><a href="@url" target="_blank">@url</a></div>
+
+                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                            <!-- Copy: pure client-side so it's a real user gesture -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="adminCopyNow(this)" data-url="@url">
+                                Copy link
+                            </button>
+
+                            <!-- Download: native <a download> -->
+                            <a class="btn btn-sm btn-outline-primary" href="@png" download="@fname">
+                                Download QR
+                            </a>
+
+                            @if (IsEditing(t.Id))
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="() => SaveTable(t.Id)">Save</button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => CancelEdit(t.Id)">Cancel</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => StartEdit(t)">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteTable(t.Id)">Delete</button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Restaurant> _rests = new();
+    private List<DiningTable> _tables = new();
+    private int _restaurantId;
+    private string? _restaurantSlug;
+    private int _newSeats = 2;
+
+    private string _msg = "";
+    private bool _isError;
+
+    // edit state
+    private readonly HashSet<int> _editing = new();
+    private readonly Dictionary<int, string> _editCode = new();
+    private readonly Dictionary<int, int> _editSeats = new();
+
+    private string GuestBase => (Config["Public:GuestBaseUrl"] ?? Nav.BaseUri).TrimEnd('/');
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rests = await Db.Restaurants.OrderBy(r => r.Name).ToListAsync();
+        if (_rests.Count > 0)
+        {
+            _restaurantId = _rests[0].Id;
+            _restaurantSlug = _rests[0].Slug;
+            await Load();
+        }
+    }
+
+    private async Task OnRestaurantChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            _restaurantId = id;
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        var r = await Db.Restaurants
+            .Include(x => x.Tables)
+            .FirstAsync(x => x.Id == _restaurantId);
+
+        _restaurantSlug = r.Slug;
+        _tables = r.Tables.OrderBy(t => t.Code).ToList();
+        _msg = ""; _isError = false;
+    }
+
+    private async Task NewTable()
+    {
+        var maxNum = _tables
+            .Select(t => int.TryParse(t.Code.TrimStart('T', 'H'), out var n) ? n : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var code = $"T{maxNum + 1}";
+        Db.DiningTables.Add(new DiningTable { RestaurantId = _restaurantId, Code = code, Seats = Math.Max(1, _newSeats) });
+        await Db.SaveChangesAsync();
+        await Load();
+        _msg = "Table added.";
+    }
+
+    private async Task ChangeSeats(DiningTable t, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var s))
+        {
+            t.Seats = Math.Max(1, s);
+            await Db.SaveChangesAsync();
+        }
+    }
+
+    private bool IsEditing(int id) => _editing.Contains(id);
+    private void StartEdit(DiningTable t)
+    {
+        _editing.Add(t.Id);
+        _editCode[t.Id] = t.Code;
+        _editSeats[t.Id] = t.Seats;
+    }
+    private void CancelEdit(int id)
+    {
+        _editing.Remove(id);
+        _editCode.Remove(id);
+        _editSeats.Remove(id);
+    }
+    private async Task SaveTable(int id)
+    {
+        var t = await Db.DiningTables.FirstAsync(x => x.Id == id);
+        t.Code = (_editCode[id] ?? t.Code).Trim().ToUpperInvariant();
+        t.Seats = Math.Max(1, _editSeats[id]);
+        await Db.SaveChangesAsync();
+        CancelEdit(id);
+        await Load();
+        _msg = "Table updated.";
+    }
+
+    private async Task DeleteTable(int id)
+    {
+        var t = await Db.DiningTables.FirstAsync(x => x.Id == id);
+
+        // Block delete when there are non-served orders on this table
+        var hasOpen = await Db.Orders.AnyAsync(o => o.DiningTableId == id && o.Status != OrderStatus.Served);
+        if (hasOpen)
+        {
+            _isError = true;
+            _msg = "Cannot delete: table has active or historical orders. Consider renaming or reusing the code.";
+            return;
+        }
+
+        // Confirm in browser
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete table {t.Code}? This cannot be undone."))
+            return;
+
+        Db.DiningTables.Remove(t);
+        try
+        {
+            await Db.SaveChangesAsync();
+            _msg = "Table deleted.";
+        }
+        catch (DbUpdateException)
+        {
+            _isError = true;
+            _msg = "Delete failed due to related data.";
+        }
+        await Load();
+    }
+
+    private string BuildTableUrl(DiningTable t) => $"{GuestBase}/t/{_restaurantSlug}/{t.Code}";
+
+    private string QrPng(DiningTable t)
+    {
+        try
+        {
+            var url = BuildTableUrl(t);
+            using var gen = new QRCodeGenerator();
+            using var data = gen.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+            var png = new PngByteQRCode(data);
+            var bytes = png.GetGraphic(5);
+            return "data:image/png;base64," + Convert.ToBase64String(bytes);
+        }
+        catch { return ""; }
+    }
+
+    private static int ToInt(object? v, int dflt) =>
+        int.TryParse(v?.ToString(), out var n) ? n : dflt;
+}

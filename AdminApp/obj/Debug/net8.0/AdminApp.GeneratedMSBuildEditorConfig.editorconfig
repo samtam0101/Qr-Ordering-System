@@ -1,0 +1,63 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = AdminApp
+build_property.RootNamespace = AdminApp
+build_property.ProjectDir = /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp
+build_property._RazorSourceGeneratorDebug = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Menu.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTWVudS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Orders.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvT3JkZXJzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2hhcmVkL01haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Shared/RedirectToLogin.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2hhcmVkL1JlZGlyZWN0VG9Mb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/Tables.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGFibGVzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 

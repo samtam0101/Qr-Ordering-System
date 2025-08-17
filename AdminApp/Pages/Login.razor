@@ -1,0 +1,18 @@
+@page "/login"
+@attribute [AllowAnonymous]
+
+<h3>Admin Login</h3>
+
+<form method="post" action="api/login" style="max-width:420px">
+  <div class="mb-2">
+    <label class="form-label">Email</label>
+    <input class="form-control" name="email" value="admin@demo.com" />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Password</label>
+    <input class="form-control" type="password" name="password" value="Admin@123" />
+  </div>
+
+  <button class="btn btn-primary" type="submit">Login</button>
+</form>

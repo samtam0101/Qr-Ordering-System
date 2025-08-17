@@ -1,0 +1,29 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/css/menu-enhanced.css",
+      "PackagePath": "staticwebassets/css/menu-enhanced.css"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/css/site.css",
+      "PackagePath": "staticwebassets/css/site.css"
+    },
+    {
+      "Id": "obj/Release/net8.0/staticwebassets/msbuild.GuestApp.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Release/net8.0/staticwebassets/msbuild.build.GuestApp.props",
+      "PackagePath": "build\\GuestApp.props"
+    },
+    {
+      "Id": "obj/Release/net8.0/staticwebassets/msbuild.buildMultiTargeting.GuestApp.props",
+      "PackagePath": "buildMultiTargeting\\GuestApp.props"
+    },
+    {
+      "Id": "obj/Release/net8.0/staticwebassets/msbuild.buildTransitive.GuestApp.props",
+      "PackagePath": "buildTransitive\\GuestApp.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

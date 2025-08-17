@@ -1,0 +1,82 @@
+@page "/orders"
+@attribute [Authorize]
+@inject AppDbContext Db
+@using Microsoft.EntityFrameworkCore
+@using Infrastructure.Models
+
+<h3>Orders</h3>
+
+@if (_orders is null)
+{
+    <p>Loading…</p>
+}
+else if (_orders.Count == 0)
+{
+    <p>No orders yet.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr><th>#</th><th>Table</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var o in _orders)
+        {
+            <tr>
+                <td>@o.Id</td>
+                <td>@o.DiningTable?.Code</td>
+                <td>
+                    <ul>
+                        @foreach (var it in o.Items)
+                        {
+                            <li>@it.MenuItem?.Name x @it.Quantity</li>
+                        }
+                    </ul>
+                </td>
+                <td>@o.Total.ToString("0.00")</td>
+                <td>@o.Status</td>
+                <td>
+                    <button @onclick="() => SetStatus(o.Id, OrderStatus.InProgress)">In Progress</button>
+                    <button @onclick="() => SetStatus(o.Id, OrderStatus.Ready)">Ready</button>
+                    <button @onclick="() => SetStatus(o.Id, OrderStatus.Served)">Served</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Order> _orders = new();
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        _orders = await Db.Orders
+            .Include(o => o.Items).ThenInclude(i => i.MenuItem)
+            .Where(o => o.Status != OrderStatus.Draft)   // hide carts
+            .OrderByDescending(o => o.Id)
+            .ToListAsync();
+    }
+
+    private async Task Reload()
+    {
+        _orders = await Db.Orders
+            .Include(o => o.DiningTable)
+            .Include(o => o.Items).ThenInclude(i => i.MenuItem)
+            .OrderByDescending(o => o.Id)
+            .Take(50)
+            .ToListAsync();
+        StateHasChanged();
+    }
+
+    private async Task SetStatus(int orderId, OrderStatus status)
+    {
+        var o = await Db.Orders.FindAsync(orderId);
+        if (o is null) return;
+        o.Status = status;
+        await Db.SaveChangesAsync();
+        await Reload();
+    }
+}

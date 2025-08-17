@@ -1,0 +1,49 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/css/site.css",
+      "PackagePath": "staticwebassets/css/site.css"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/js/admin.js",
+      "PackagePath": "staticwebassets/js/admin.js"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/uploads/menu_13_7e00ff55149d4c39b1074fc8264d5171.jpg",
+      "PackagePath": "staticwebassets/uploads/menu_13_7e00ff55149d4c39b1074fc8264d5171.jpg"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/uploads/menu_9_7b1d3cb2c6734c69be95d38930903768.jpg",
+      "PackagePath": "staticwebassets/uploads/menu_9_7b1d3cb2c6734c69be95d38930903768.jpg"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/uploads/menu_bab67be45aef4744a4f8fde06b1131d0.jpg",
+      "PackagePath": "staticwebassets/uploads/menu_bab67be45aef4744a4f8fde06b1131d0.jpg"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/uploads/menu_e9f6bbe799264101a2aa28e93d51fc1d.jpg",
+      "PackagePath": "staticwebassets/uploads/menu_e9f6bbe799264101a2aa28e93d51fc1d.jpg"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/wwwroot/uploads/menu_ed4f264eb5a645dca502ba58301dee9c.jpg",
+      "PackagePath": "staticwebassets/uploads/menu_ed4f264eb5a645dca502ba58301dee9c.jpg"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.AdminApp.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.AdminApp.props",
+      "PackagePath": "build\\AdminApp.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.AdminApp.props",
+      "PackagePath": "buildMultiTargeting\\AdminApp.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.AdminApp.props",
+      "PackagePath": "buildTransitive\\AdminApp.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
