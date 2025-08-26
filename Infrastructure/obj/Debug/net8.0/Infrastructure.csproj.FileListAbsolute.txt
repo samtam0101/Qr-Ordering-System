@@ -26,3 +26,4 @@
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/obj/Debug/net8.0/Infrastructure.pdb
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/obj/Debug/net8.0/Infrastructure.genruntimeconfig.cache
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/obj/Debug/net8.0/ref/Infrastructure.dll
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/obj/Debug/net8.0/Infrastructure.sourcelink.json

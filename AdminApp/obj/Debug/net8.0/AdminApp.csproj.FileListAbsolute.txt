@@ -103,3 +103,5 @@
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/obj/Debug/net8.0/AdminApp.pdb
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/obj/Debug/net8.0/AdminApp.genruntimeconfig.cache
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/obj/Debug/net8.0/ref/AdminApp.dll
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/bin/Debug/net8.0/appsettings.Production.json
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/AdminApp/obj/Debug/net8.0/AdminApp.sourcelink.json

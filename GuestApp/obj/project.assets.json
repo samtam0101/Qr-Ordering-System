@@ -2282,19 +2282,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\HP\\.nuget\\packages\\": {}
+    "/Users/samir/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\GuestApp\\GuestApp.csproj",
+      "projectUniqueName": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/GuestApp.csproj",
       "projectName": "GuestApp",
-      "projectPath": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\GuestApp\\GuestApp.csproj",
-      "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\GuestApp\\obj\\",
+      "projectPath": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/GuestApp.csproj",
+      "packagesPath": "/Users/samir/.nuget/packages/",
+      "outputPath": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\HP\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "/Users/samir/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -2306,8 +2306,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\Infrastructure\\Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\HP\\Desktop\\My Work\\My Projects\\Qr-Ordering-System\\Infrastructure\\Infrastructure.csproj"
+            "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/Infrastructure.csproj": {
+              "projectPath": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/Infrastructure/Infrastructure.csproj"
             }
           }
         }
@@ -2316,13 +2316,7 @@
         "warnAsError": [
           "NU1605"
         ]
-      },
-      "restoreAuditProperties": {
-        "enableAudit": "true",
-        "auditLevel": "low",
-        "auditMode": "direct"
-      },
-      "SdkAnalysisLevel": "9.0.100"
+      }
     },
     "frameworks": {
       "net8.0": {
@@ -2362,7 +2356,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.109/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.100/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

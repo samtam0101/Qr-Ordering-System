@@ -206,3 +206,5 @@
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.pdb
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.genruntimeconfig.cache
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/ref/GuestApp.dll
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/appsettings.Production.json
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.sourcelink.json

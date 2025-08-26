@@ -7,10 +7,8 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<CartService>();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<GuestApp.Services.CartService>();
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
-builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<OrderService>();
 
 var app = builder.Build();

@@ -67,3 +67,5 @@ networks:
 volumes:
   admin_uploads:
   pg-data:
+
+
