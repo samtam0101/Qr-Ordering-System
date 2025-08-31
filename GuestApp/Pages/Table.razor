@@ -6,72 +6,442 @@
 @inject NavigationManager Nav
 @inject GuestApp.Services.CartService Cart
 @inject IConfiguration Config
+@inject IJSRuntime JS
 
-<h3>@(_restaurant?.Name ?? "Menu")</h3>
+<div class="topbar">
+  <button class="icon-btn" title="@T("back")" @onclick="GoHome">←</button>
+  <div class="brand">@(_restaurant?.Name ?? "Menu")</div>
+  <div class="actions">
+    <button class="icon-btn" title="@T("search")" @onclick="ToggleSearch">🔍</button>
+    <button class="icon-btn" title="@T("language")" @onclick="ToggleLang">🌐</button>
+    <button class="icon-btn" title="@T("info")" @onclick="OpenInfo">ℹ️</button>
+  </div>
+</div>
 
 @if (_restaurant is null)
 {
-    <p>Loading…</p>
+  <div class="loading">Loading…</div>
 }
 else
 {
+  <div class="chipbar">
     @foreach (var c in _categories)
     {
-        <h4>@c.Name</h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
-            @foreach (var m in (c.Items ?? new()).OrderBy(i => i.Name))
-            {
-                <div style="border:1px solid #e5e7eb;border-radius:12px;padding:10px;">
-                    @if (!string.IsNullOrWhiteSpace(m.ImageUrl))
-                    {
-                        <img src="@m.ImageUrl" alt="@m.Name" style="width:100%;height:140px;object-fit:cover;border-radius:8px;" />
-                    }
-                    <div style="font-weight:600;margin-top:6px;">@m.Name</div>
-                    @if (!string.IsNullOrWhiteSpace(m.Description))
-                    {
-                        <div style="font-size:.9rem;color:#666;">@m.Description</div>
-                    }
-                    <div style="margin-top:6px;font-weight:700;">@m.Price.ToString("0.00")</div>
-                    <button style="margin-top:8px;" @onclick="() => Add(m.Id)">Add</button>
-                </div>
-            }
-        </div>
+      var id = "cat-" + SlugFor(c.Name);
+      <button class="chip" @onclick="() => Jump(id)">@c.Name</button>
     }
+  </div>
 
-    <div style="position:fixed;right:16px;bottom:16px;">
-        <button @onclick="GoCheckout">Checkout (@_cartCount)</button>
-    </div>
+  @foreach (var c in _categories)
+  {
+    var cid = "cat-" + SlugFor(c.Name);
+    var items = (c.Items ?? new())
+    .Where(i => i.IsAvailable)          // <- respect availability
+    .Where(MatchesQuery)
+    .OrderBy(i => i.Name);
+
+    <section class="section" id="@cid">
+      <h3 class="section-title">@c.Name</h3>
+
+      <div class="menu-grid">
+        @foreach (var m in items)
+        {
+          <div class="menu-card">
+            <div class="menu-photo">
+              <img src="@Asset(m.ImageUrl)"
+                   alt="@m.Name"
+                   loading="lazy" decoding="async"
+                   class="zoomable"
+                   @onclick="() => OpenPreview(m)" />
+
+              @if (Qty(m.Id) <= 0)
+              {
+                <button class="menu-add" @onclick="() => StartAdd(m.Id)">@T("add")</button>
+              }
+              else
+              {
+                <div class="qty-stepper">
+                  <button class="qs-btn" title="Decrease"
+                          @onclick="() => Dec(m.Id)"
+                          disabled="@(Qty(m.Id) <= 0)">−</button>
+                  <span class="qs-value">@Qty(m.Id)</span>
+                  <button class="qs-btn" title="Increase" @onclick="() => Inc(m.Id)">+</button>
+                </div>
+              }
+            </div>
+
+            <div class="menu-meta">
+              <div class="menu-name">@m.Name</div>
+              @if (!string.IsNullOrWhiteSpace(m.Description))
+              {
+                <div class="menu-desc">@m.Description</div>
+              }
+              <div class="menu-price">@m.Price.ToString("0.00")</div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="dock">
+    <button class="dock-btn" @onclick="GoCart">
+      <span>🛒</span>
+      <strong>@T("viewcart") (@_cartCount) • @_cartTotal.ToString("0.00")</strong>
+    </button>
+  </div>
 }
+
+@* Search overlay *@
+@if (_searchOpen)
+{
+  <div class="overlay" @onclick="() => _searchOpen=false">
+    <div class="panel" @onclick:stopPropagation>
+      <input class="searchbox" placeholder="@T("searchPlaceholder")" @bind="_q" @bind:event="oninput" autofocus />
+      <button class="ghost" @onclick="ClearQuery">@T("clear")</button>
+    </div>
+  </div>
+}
+
+@* Info sheet (edit inside InfoContent()) *@
+@if (_infoOpen)
+{
+  <div class="overlay" @onclick="CloseInfo">
+    <div class="sheet" @onclick:stopPropagation>
+      <div class="sheet-head">
+        <div class="sheet-title">@(_restaurant?.Name ?? "Info")</div>
+        <button class="icon-btn" @onclick="CloseInfo">✕</button>
+      </div>
+      @InfoContent()
+    </div>
+  </div>
+}
+
+@* PHOTO PREVIEW (tap image) *@
+@if (_previewOpen && _previewItem is not null)
+{
+  <div class="preview-overlay" @onclick="ClosePreview">
+    <div class="preview-dialog" @onclick:stopPropagation>
+      <!-- MEDIA as background-image so it ALWAYS fills -->
+      <div class="preview-media"
+           style="background-image:url('@Asset(_previewItem.ImageUrl)')">
+        <button class="icon-btn close-x" title="Close" @onclick="ClosePreview">✕</button>
+      </div>
+
+      <div class="preview-meta">
+        <div class="preview-title">@_previewItem.Name</div>
+        @if (!string.IsNullOrWhiteSpace(_previewItem.Description))
+        {
+          <div class="preview-desc">@_previewItem.Description</div>
+        }
+        <div class="preview-price">@_previewItem.Price.ToString("0.00")</div>
+      </div>
+    </div>
+  </div>
+}
+
+
+
+<style>
+:root{
+  --bg:#fafafa; --card:#fff; --text:#111827; --muted:#6b7280;
+  --line:#e5e7eb; --accent:#f2d565; /* yellow accent */
+  --accent-deep:#facc15;           /* border */
+  --accent-ink:#6b5a29;            /* icon text */
+  --shadow:0 8px 24px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+.topbar{position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line)}
+.brand{font-weight:700; font-size:1.1rem}
+.icon-btn{border:none; background:#fbf7e4; color:var(--accent-ink); width:34px; height:34px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
+.actions{display:flex; gap:8px}
+.loading{padding:24px}
+
+.chipbar{position:sticky; top:57px; z-index:15; display:flex; gap:10px; overflow-x:auto; white-space:nowrap; padding:8px 16px; background:var(--card); border-bottom:1px solid var(--line)}
+.chip{border:none; background:#f4f4f5; color:#374151; padding:6px 12px; border-radius:999px; cursor:pointer; font-weight:600}
+.chip:hover{background:#ececec}
+
+.section{padding:16px}
+.section-title{margin:6px 0 14px 0}
+
+.menu-grid{display:grid; gap:18px; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr))}
+
+.menu-card{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:12px}
+.menu-photo{position:relative; width:100%; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:#f6f6f6}
+.menu-photo>img{width:100%; height:100%; object-fit:cover; display:block}
+.menu-photo>img.zoomable{cursor:zoom-in}
+
+.menu-add{
+  position:absolute; right:10px; bottom:10px;
+  background:#111827; color:#fff; border:none; border-radius:999px;
+  padding:8px 12px; cursor:pointer; font-weight:700; font-size:.92rem
+}
+
+/* NEW: compact yellow stepper */
+.qty-stepper{
+  position:absolute; right:10px; bottom:10px;
+  display:flex; align-items:center; gap:8px;
+  background:#fff8db; border:2px solid var(--accent-deep); color:var(--accent-ink);
+  border-radius:14px; padding:6px 10px;
+}
+.qs-btn{
+  width:26px; height:26px; line-height:24px;
+  border-radius:8px; border:1px solid var(--accent-deep);
+  background:#fff; color:var(--accent-ink); cursor:pointer;
+  font-weight:800; font-size:18px; display:inline-flex; align-items:center; justify-content:center;
+}
+.qs-btn:disabled{opacity:.5; cursor:default}
+.qs-value{min-width:16px;text-align:center;font-weight:800}
+
+/* underline accent under card meta like you had */
+.menu-meta{position:relative; padding:10px 0 12px}
+.menu-meta::after{content:""; display:block; width:120px; height:2px; background:#ef4444; border-radius:2px; margin-top:10px}
+.menu-name{font-weight:700}
+.menu-desc{color:var(--muted); font-size:.92rem; margin-top:4px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.menu-price{font-weight:800; margin-top:8px}
+
+.dock{position:fixed; left:0; right:0; bottom:10px; display:flex; justify-content:center; pointer-events:none}
+.dock-btn{pointer-events:auto; display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); padding:10px 16px; border-radius:14px; box-shadow:var(--shadow)}
+
+/* overlays shared */
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-start; justify-content:center; padding:10vh 16px; z-index:40}
+.panel{background:#fff; border-radius:14px; padding:14px; width:min(720px,100%); display:flex; gap:8px; border:1px solid var(--line)}
+.searchbox{flex:1; font-size:1rem; padding:10px 12px; border:1px solid var(--line); border-radius:8px; outline:none}
+.ghost{background:transparent; border:1px solid var(--line); border-radius:10px; padding:8px 10px; cursor:pointer}
+
+.sheet{background:#fff; border-radius:16px; padding:16px; width:min(900px,100%); border:1px solid var(--line); box-shadow:var(--shadow)}
+.sheet-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+.sheet-title{font-weight:800; font-size:1.1rem}
+.sheet ul{padding-left:1.1rem}
+.sheet li{margin:6px 0}
+
+/* --- BIG PHOTO PREVIEW --- */
+.preview-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.55);
+  backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center;
+  padding:4vh 16px; z-index:60;
+}
+.preview-dialog{
+  background:#fff; border-radius:18px; border:1px solid var(--line,#e5e7eb);
+  width:min(900px,96vw); max-height:92vh; overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  display:flex; flex-direction:column;
+}
+.preview-media{
+  width:100%;
+  height:clamp(360px,70vh,78vh);
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;     /* KEY: fills without black bars */
+  background-color:#000;     /* while loading */
+  position:relative;
+}
+.close-x{
+  position:absolute; top:10px; right:10px;
+  background:#fbf7e4; color:#6b5a29;            /* same palette as back button */
+  width:34px; height:34px; border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid rgba(0,0,0,.06);
+  box-shadow:0 6px 16px rgba(0,0,0,.18);
+}
+.preview-meta{padding:14px 16px; overflow:auto}
+.preview-title{font-weight:800; font-size:1.1rem}
+.preview-desc{color:#6b7280; margin-top:6px}
+.preview-price{font-weight:800; margin-top:8px}
+
+/* --- Stepper: match the yellow 'back' chip and make a bit smaller --- */
+.qty-stepper{
+  position:absolute; right:10px; bottom:10px;
+  display:flex; align-items:center; gap:10px;
+  background:#fbf7e4;                 /* chip yellow */
+  border:2px solid #efd26e;            /* yellow ring */
+  color:#6b5a29;                       /* ink */
+  border-radius:16px; padding:6px 10px;/* smaller */
+  transform:scale(.92);
+}
+.qs-btn{
+  width:28px;height:28px;border-radius:8px;
+  border:1px solid #efd26e;background:#fff;cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800;
+}
+.qs-value{min-width:18px;text-align:center;font-weight:800}
+.qs-btn:hover{background:#fff7d1}
+
+
+</style>
 
 @code {
-    [Parameter] public string? RestaurantSlug { get; set; }
-    [Parameter] public string? TableCode { get; set; }
+  [Parameter] public string? RestaurantSlug { get; set; }
+  [Parameter] public string? TableCode { get; set; }
 
-    private Restaurant? _restaurant;
-    private List<Infrastructure.Models.MenuCategory> _categories = new();
-    private int _cartCount;
-    
-    protected override async Task OnParametersSetAsync()
+  private Restaurant? _restaurant;
+  private List<MenuCategory> _categories = new();
+
+  private bool _searchOpen;
+  private string _q = "";
+  private bool _infoOpen;
+  private string _lang = "en"; // "en" | "ru"
+
+  // qty per menu item on the menu page
+  private readonly Dictionary<int,int> _qty = new();
+  private int _cartCount;
+  private decimal _cartTotal;
+
+  // image preview
+  private bool _previewOpen;
+  private MenuItem? _previewItem;
+
+  protected override async Task OnParametersSetAsync()
+  {
+      _restaurant = await Db.Restaurants
+    .Include(r => r.Categories)!.ThenInclude(c => c.Items)
+    .FirstOrDefaultAsync(r => r.Slug == RestaurantSlug);
+
+    _categories = _restaurant?.Categories?
+    .OrderBy(c => c.SortOrder)      // ← honor Admin’s order
+    .ThenBy(c => c.Name)            // fallback only if equal
+    .ToList() ?? new();
+
+      await Cart.InitAsync(RestaurantSlug, TableCode);
+      await RehydrateQtyFromDraft();
+      await UpdateCartStats();
+  }
+
+  // ---- qty / cart helpers ----
+  private int Qty(int id) => _qty.TryGetValue(id, out var q) ? q : 0;
+
+  private async Task StartAdd(int id)
+  {
+      await Cart.AddItemAsync(id, 1);
+      _qty[id] = Qty(id) + 1;
+      await UpdateCartStats();
+  }
+  private async Task Inc(int id)
+  {
+      await Cart.AddItemAsync(id, 1);
+      _qty[id] = Qty(id) + 1;
+      await UpdateCartStats();
+  }
+  private async Task Dec(int id)
+  {
+      if (Qty(id) <= 0) return;
+      await Cart.RemoveItemAsync(id, 1);
+      var next = Qty(id) - 1;
+      if (next <= 0) _qty.Remove(id); else _qty[id] = next;
+      await UpdateCartStats();
+  }
+
+  private async Task RehydrateQtyFromDraft()
+  {
+      _qty.Clear();
+      var draft = await Cart.GetDraftAsync();
+      if (draft == null) return;
+      var items = draft.GetType().GetProperty("Items")?.GetValue(draft) as System.Collections.IEnumerable
+                  ?? Array.Empty<object>();
+      foreach (var raw in items)
+      {
+          dynamic it = raw!;
+          int id = (int)it.MenuItemId;
+          int q  = (int)it.Quantity;
+          _qty[id] = (_qty.TryGetValue(id, out var cur) ? cur : 0) + q;
+      }
+  }
+
+  private async Task UpdateCartStats()
+  {
+      _cartCount = 0;
+      _cartTotal = 0m;
+      var draft = await Cart.GetDraftAsync();
+      var items = draft?.GetType().GetProperty("Items")?.GetValue(draft) as System.Collections.IEnumerable;
+      if (items != null)
+      {
+          foreach (var raw in items)
+          {
+              dynamic it = raw!;
+              int q = (int)it.Quantity;
+              decimal price = (decimal?)it.MenuItem?.Price ?? (decimal?)it.Price ?? 0m;
+              _cartCount += q;
+              _cartTotal += price * q;
+          }
+      }
+      StateHasChanged();
+  }
+
+  // ---- search/lang/info ----
+  private void ToggleSearch() => _searchOpen = !_searchOpen;
+  private void ClearQuery() => _q = "";
+  private bool MatchesQuery(MenuItem m)
+  {
+      if (string.IsNullOrWhiteSpace(_q)) return true;
+      var q = _q.Trim().ToLowerInvariant();
+      return (m.Name ?? "").ToLowerInvariant().Contains(q) || (m.Description ?? "").ToLowerInvariant().Contains(q);
+  }
+
+  private void ToggleLang() => _lang = _lang=="en" ? "ru" : "en";
+  private string T(string key) => _lang switch
+  {
+      "ru" => key switch { "back"=>"Назад","search"=>"Поиск","language"=>"Язык","info"=>"Инфо","searchPlaceholder"=>"Поиск по меню…","clear"=>"Очистить","add"=>"Добавить","viewcart"=>"Корзина", _=>key },
+      _    => key switch { "back"=>"Back","search"=>"Search","language"=>"Language","info"=>"Info","searchPlaceholder"=>"Search menu…","clear"=>"Clear","add"=>"Add","viewcart"=>"View cart", _=>key }
+  };
+
+  private void OpenInfo() => _infoOpen = true;
+  private void CloseInfo() => _infoOpen = false;
+
+  private RenderFragment InfoContent() => __ =>
+  {
+      // Put real “Sharbat” info here if you like
+      __.AddMarkupContent(0, $"<p style='margin:6px 0 14px 0;color:#374151'>{_restaurant?.Name ?? "Restaurant"} — {( _lang=="ru" ? "уютное кафе с вкусными блюдами." : "a cozy restaurant with delicious food.")}</p>");
+      __.AddMarkupContent(1, "<ul>");
+      __.AddMarkupContent(2, $"<li>⏰ {( _lang=="ru" ? "Часы работы" : "Opening hours" )}: 9:00–23:00</li>");
+      __.AddMarkupContent(3, $"<li>📍 {( _lang=="ru" ? "Адрес" : "Address" )}: —</li>");
+      __.AddMarkupContent(4, $"<li>☎️ {( _lang=="ru" ? "Телефон" : "Phone" )}: —</li>");
+      __.AddMarkupContent(5, "</ul>");
+  };
+
+  // ---- image preview ----
+  private void OpenPreview(MenuItem m) { _previewItem = m; _previewOpen = true; }
+  private void ClosePreview() { _previewOpen = false; _previewItem = null; }
+
+  // ---- nav / utils ----
+  private async Task Jump(string id) => await JS.InvokeVoidAsync("scrollToId", id);
+  private void GoHome() => Nav.NavigateTo("/");
+  private void GoCart() => Nav.NavigateTo($"/cart/{RestaurantSlug}/{TableCode}");
+
+  private string Asset(string? path)
+{
+    if (!string.IsNullOrWhiteSpace(path)
+        && (path.StartsWith("http://") || path.StartsWith("https://")))
+        return path!;
+
+    var baseUrl = (Config["AdminPublicBase"] ?? "").TrimEnd('/');
+    // build normalized 'p' as you already do...
+    var p = (path ?? "").Replace("\\", "/");
+    if (p.Contains("/uploads/")) p = p[(p.IndexOf("/uploads/", StringComparison.Ordinal))..];
+    else if (p.Contains("uploads/")) p = "/" + p[(p.IndexOf("uploads/", StringComparison.Ordinal))..];
+    else if (!string.IsNullOrEmpty(p)) p = "/uploads/" + p;
+    else
     {
-        _restaurant = await Db.Restaurants
-            .Include(r => r.Categories)!.ThenInclude(c => c.Items)
-            .FirstOrDefaultAsync(r => r.Slug == RestaurantSlug);
-
-        _categories = _restaurant?.Categories?.OrderBy(c => c.Name).ToList() ?? new();
-
-        await Cart.InitAsync(RestaurantSlug, TableCode);
-        var draft = await Cart.GetDraftAsync();
-        _cartCount = draft?.Items?.Sum(i => i.Quantity) ?? 0;
+        // inline transparent 1x1 PNG, no network call needed
+        return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMBAAZmKw8AAAAASUVORK5CYII=";
     }
 
-    private async Task Add(int menuItemId)
-    {
-        await Cart.AddItemAsync(menuItemId, 1);
-        var draft = await Cart.GetDraftAsync();
-        _cartCount = draft?.Items?.Sum(i => i.Quantity) ?? 0;
-        StateHasChanged();
-    }
-
-    private void GoCheckout()
-        => Nav.NavigateTo($"/checkout/{RestaurantSlug}/{TableCode}");
+    if (string.IsNullOrWhiteSpace(baseUrl)) return p; // relative fallback
+    return $"{baseUrl}{p}";
 }
+
+  private static string SlugFor(string s)
+  {
+      var t = new string((s ?? "").ToLowerInvariant().Select(ch => char.IsLetterOrDigit(ch) ? ch : '-').ToArray());
+      while (t.Contains("--")) t = t.Replace("--", "-");
+      return t.Trim('-');
+  }
+}
+
+<script>
+  window.scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  };
+</script>

@@ -5,73 +5,86 @@
 @using Microsoft.JSInterop  
 @inject IJSRuntime JS
 
-<div style="background:#0f172a;color:#e5e7eb;min-height:100vh;padding:12px 16px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-weight:700;">Kitchen Display</div>
-        <div style="display:flex;gap:10px;align-items:center;font-size:.9rem;color:#94a3b8;">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                <input type="checkbox" @bind="_soundEnabled" />
-                Sound alerts
-            </label>
-            <button class="kbtn outline" @onclick="TestBeep">Test sound</button>
-            <span style="opacity:.7">Auto-refresh 5s</span>
-        </div>
+<!-- Header / controls -->
+<div class="kds-toolbar">
+    <div class="left">
+        <h2 class="mb-0">Kitchen Display</h2>
     </div>
+    <div class="right">
+        <label class="form-check">
+            <input class="form-check-input" type="checkbox" @bind="_soundEnabled" />
+            <span>Sound alerts</span>
+        </label>
 
-    @if (!string.IsNullOrEmpty(_error))
-    {
-        <div style="color:#ef4444;margin:8px 0;">@_error</div>
-    }
+        <button class="btn btn-ghost btn-sm" @onclick="TestBeep">Test sound</button>
 
-    @if (_loading)
-    {
-        <div style="display:flex;justify-content:center;align-items:center;height:240px;">
-            <div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#e5e7eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        </div>
-    }
-    else
-    {
-        <section style="margin-top:12px;">
-            <h4 style="margin:0 0 8px 0;">Ready <span class="chip">@_ready.Count</span></h4>
-            @Row(_ready)
-        </section>
-
-        <section style="margin-top:20px;">
-            <h4 style="margin:0 0 8px 0;">In Progress <span class="chip">@_inprog.Count</span></h4>
-            @Row(_inprog)
-        </section>
-
-        <section style="margin-top:20px;">
-            <h4 style="margin:0 0 8px 0;">Submitted <span class="chip">@_submitted.Count</span></h4>
-            @Row(_submitted)
-        </section>
-
-        <section style="margin-top:20px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <h4 style="margin:0;">Served (last 20)</h4>
-                <label style="font-size:.9rem;color:#94a3b8;display:flex;align-items:center;gap:6px;cursor:pointer;">
-                    <input type="checkbox" @bind="_showServed" />
-                    Show
-                </label>
-                <span class="chip" style="margin-left:6px">@_served.Count</span>
-            </div>
-            @if (_showServed)
-            {
-                @Row(_served, showActions:false)
-            }
-        </section>
-    }
+        <span class="badge">Auto-refresh 5s</span>
+    </div>
 </div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div style="color:#ef4444;margin:8px 0;">@_error</div>
+}
+
+@if (_loading)
+{
+    <div style="display:flex;justify-content:center;align-items:center;height:240px;">
+        <div style="width:28px;height:28px;border:3px solid #475569;border-top-color:#e5e7eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
+    </div>
+}
+else
+{
+    <section style="margin-top:12px;">
+        <h4 style="margin:0 0 8px 0;">Ready <span class="chip">@_ready.Count</span></h4>
+        @Row(_ready)
+    </section>
+
+    <section style="margin-top:20px;">
+        <h4 style="margin:0 0 8px 0;">In Progress <span class="chip">@_inprog.Count</span></h4>
+        @Row(_inprog)
+    </section>
+
+    <section style="margin-top:20px;">
+        <h4 style="margin:0 0 8px 0;">Submitted <span class="chip">@_submitted.Count</span></h4>
+        @Row(_submitted)
+    </section>
+
+    <section style="margin-top:20px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <h4 style="margin:0;">Served (last 20)</h4>
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="_showServed" />
+                <span>Show</span>
+            </label>
+            <span class="chip" style="margin-left:6px">@_served.Count</span>
+        </div>
+        @if (_showServed)
+        {
+            @Row(_served, showActions:false)
+        }
+    </section>
+}
 
 <audio @ref="_beep" preload="auto" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYBWFlaAAABAAACAA8A/////wAAAP//AAD///8AAP//AAAAAA==" />
 
 <style>
+/* keep your spinner and buttons */
 @@keyframes spin { to { transform: rotate(360deg); } }
 .kbtn{background:#2563eb;border:none;color:white;padding:6px 10px;border-radius:8px;cursor:pointer}
 .kbtn:hover{opacity:.9}
 .kbtn.outline{background:transparent;border:1px solid #374151;color:#e5e7eb}
 .kbtn.outline:hover{background:#111827}
 .chip{background:#1f2937;border:1px solid #374151;border-radius:999px;padding:0 8px;font-size:.8rem}
+
+/* NEW: tidy header layout (works with fresh.css + Bootstrap) */
+.kds-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.kds-toolbar .left{display:flex;gap:12px;align-items:center}
+.kds-toolbar .right{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+/* Make checkbox + label sit inline neatly */
+.form-check{margin:0;display:inline-flex;align-items:center;gap:8px}
+.form-check-input{margin:0}
 </style>
 
 @code {
@@ -266,7 +279,6 @@
     };
 }
 
-@* JS helper to reliably play audio after a user gesture *@
 <script>
     window.kdsPlay = (el) => {
         try { el && el.play && el.play(); } catch { }

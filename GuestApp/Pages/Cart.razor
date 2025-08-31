@@ -1,0 +1,118 @@
+@page "/cart/{RestaurantSlug}/{TableCode}"
+@inject GuestApp.Services.CartService CartSvc
+@inject NavigationManager Nav
+@inject IConfiguration Config
+
+<h3 style="display:flex;align-items:center;gap:10px">
+  <button title="Back" style="border:none;background:#f4f4f5;width:34px;height:34px;border-radius:999px;cursor:pointer" @onclick="GoBack">←</button>
+  View cart
+</h3>
+
+@if (_items.Count == 0)
+{
+  <div>Your cart is empty.</div>
+}
+else
+{
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:900px">
+    @foreach (var it in _items)
+    {
+      <div style="display:grid;grid-template-columns:72px 1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px 12px">
+        <img src="@Asset(it.ThumbUrl)" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px;background:#f6f6f6" />
+        <div>
+          <div style="font-weight:700">@it.Name</div>
+          <div style="color:#6b7280">@it.Price.ToString("0.00")</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="qty" @onclick="() => Dec(it.MenuItemId)">−</button>
+          <div style="min-width:18px;text-align:center;font-weight:800">@it.Qty</div>
+          <button class="qty" @onclick="() => Inc(it.MenuItemId)">+</button>
+          <button class="danger" title="Remove" @onclick="() => Remove(it.MenuItemId)">✕</button>
+        </div>
+      </div>
+    }
+
+    <div style="display:flex;justify-content:flex-end;font-weight:800">Total: @_total.ToString("0.00")</div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="ghost" @onclick="GoBack">Back to menu</button>
+      <button class="primary" @onclick="GoCheckout">Proceed to checkout</button>
+    </div>
+  </div>
+}
+
+<style>
+.qty{width:30px;height:30px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+.danger{border:none;background:#fee2e2;color:#991b1b;border-radius:8px;width:30px;height:30px;cursor:pointer}
+.primary{border:none;background:#111827;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.ghost{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+</style>
+
+@code {
+  [Parameter] public string? RestaurantSlug { get; set; }
+  [Parameter] public string? TableCode { get; set; }
+
+  private sealed class Line { public int MenuItemId; public string? Name; public decimal Price; public int Qty; public string? ThumbUrl; }
+  private List<Line> _items = new();
+  private decimal _total;
+
+  protected override async Task OnParametersSetAsync()
+  {
+      await CartSvc.InitAsync(RestaurantSlug, TableCode);
+      await Load();
+  }
+
+  private async Task Load()
+{
+    _items.Clear();
+    var draft = await CartSvc.GetDraftAsync();
+
+    if (draft != null)
+    {
+        var items = draft.GetType().GetProperty("Items")?.GetValue(draft) as System.Collections.IEnumerable
+                    ?? System.Array.Empty<object>();
+
+        foreach (var raw in items)
+        {
+            dynamic it = raw!;
+            int id   = (int)it.MenuItemId;
+            int qty  = (int)it.Quantity;
+            string name  = (string?)(it.MenuItem?.Name)  ?? (string?)it.Name  ?? $"Item {id}";
+            decimal price = (decimal?)it.MenuItem?.Price ?? (decimal?)it.Price ?? 0m;
+
+            string thumb = (string?)(it.MenuItem?.ImageUrl) ?? "/uploads/placeholder.png";
+
+            _items.Add(new Line { MenuItemId = id, Name = name, Price = price, Qty = qty, ThumbUrl = Asset(thumb) });
+        }
+    }
+
+    _total = _items.Sum(x => x.Price * x.Qty);
+    StateHasChanged();
+}
+
+
+  private async Task Inc(int id) { await CartSvc.AddItemAsync(id, 1); await Load(); }
+  private async Task Dec(int id) { await CartSvc.RemoveItemAsync(id, 1); await Load(); }
+  private async Task Remove(int id)
+  {
+      var line = _items.FirstOrDefault(x => x.MenuItemId == id);
+      if (line != null) await CartSvc.RemoveItemAsync(id, line.Qty);
+      await Load();
+  }
+
+  private void GoBack() => Nav.NavigateTo($"/table/{RestaurantSlug}/{TableCode}");
+  private void GoCheckout() => Nav.NavigateTo($"/checkout/{RestaurantSlug}/{TableCode}");
+
+  private string Asset(string? path)
+  {
+      if (!string.IsNullOrWhiteSpace(path) &&
+          (path.StartsWith("http://") || path.StartsWith("https://"))) return path!;
+      var baseUrl = (Config["AdminPublicBase"] ?? "").TrimEnd('/');
+      if (string.IsNullOrWhiteSpace(baseUrl)) return "/uploads/placeholder.png";
+      var p = (path ?? "").Replace("\\", "/");
+      if (p.Contains("/uploads/")) p = p[(p.IndexOf("/uploads/", StringComparison.Ordinal))..];
+      else if (p.Contains("uploads/")) p = "/" + p[(p.IndexOf("uploads/", StringComparison.Ordinal))..];
+      else if (!string.IsNullOrEmpty(p)) p = "/uploads/" + p; else p = "/uploads/placeholder.png";
+      return $"{baseUrl}{p}";
+  }
+}

@@ -1,6 +1,14 @@
 {
   "Files": [
     {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/KdsApp/wwwroot/css/fresh.css",
+      "PackagePath": "staticwebassets/css/fresh.css"
+    },
+    {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/KdsApp/wwwroot/css/kds.css",
+      "PackagePath": "staticwebassets/css/kds.css"
+    },
+    {
       "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/KdsApp/wwwroot/css/site.css",
       "PackagePath": "staticwebassets/css/site.css"
     },

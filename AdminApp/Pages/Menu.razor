@@ -1,4 +1,5 @@
 @page "/menu"
+@attribute [Authorize]
 @using Infrastructure.Models
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
@@ -29,7 +30,7 @@ else
     @foreach (var c in _cats)
     {
         <div class="card mb-3" style="padding:12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                 @if (IsEditingCat(c.Id))
                 {
                     <input class="form-control" value="@_editCatName[c.Id]"
@@ -44,93 +45,115 @@ else
                     <button class="btn btn-sm btn-outline-primary" @onclick="() => StartCat(c)">Edit</button>
                     <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCat(c.Id)">Delete</button>
                     <button class="btn btn-sm btn-outline-primary" @onclick="() => NewItem(c.Id)">+ Item</button>
+
+                    @* NEW: order controls (do not alter your existing logic) *@
+                    <button class="btn btn-sm btn-outline-secondary" title="Move up"
+        @onclick="() => MoveCat(c.Id, -1)">▲</button>
+<button class="btn btn-sm btn-outline-secondary" title="Move down"
+        @onclick="() => MoveCat(c.Id, +1)">▼</button>
                 }
             </div>
 
-            <table class="table table-sm mt-2 align-middle">
-                <thead>
-                    <tr>
-                        <th style="width:16%">Name</th>
-                        <th style="width:10%">Price</th>
-                        <th style="width:30%">Description</th>
-                        <th style="width:24%">Image</th>
-                        <th style="width:8%">Avail</th>
-                        <th style="width:12%"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var m in c.Items.OrderBy(i => i.Name))
-                {
-                    <tr>
-                        @if (IsEditingItem(m.Id))
-                        {
-                            <td>
-                                <input class="form-control"
-                                       value="@_editItemName[m.Id]"
-                                       @oninput="e => _editItemName[m.Id] = e.Value?.ToString() ?? string.Empty" />
-                            </td>
-                            <td>
-                                <input class="form-control"
-                                       value="@_editItemPrice[m.Id]"
-                                       @oninput="e => _editItemPrice[m.Id] = e.Value?.ToString() ?? string.Empty" />
-                            </td>
-                            <td>
-                                <textarea class="form-control" rows="2" placeholder="Description"
-                                          @oninput="e => _editItemDesc[m.Id] = e.Value?.ToString() ?? string.Empty">@_editItemDesc.GetValueOrDefault(m.Id, m.Description ?? "")</textarea>
-                            </td>
-                            <td>
-                                <div style="display:flex;flex-direction:column;gap:6px;">
-                                    <InputFile OnChange="e => OnPickImage(e, m.Id)" />
-                                    @if (_uploadingItemId == m.Id)
-                                    {
-                                        <small style="color:#6b7280">Uploading…</small>
-                                    }
-                                    @if (!string.IsNullOrWhiteSpace(_editItemImage.GetValueOrDefault(m.Id)))
+            <div class="table-wrap">
+                <table class="table table-sm mt-2 align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width:16%">Name</th>
+                            <th style="width:10%">Price</th>
+                            <th style="width:30%">Description</th>
+                            <th style="width:24%">Image</th>
+                            <th style="width:8%">Avail</th>
+                            <th style="width:12%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var m in c.Items.OrderBy(i => i.Name))
+                    {
+                        <tr>
+                            @if (IsEditingItem(m.Id))
+                            {
+                                <td>
+                                    <input class="form-control"
+                                           value="@_editItemName[m.Id]"
+                                           @oninput="e => _editItemName[m.Id] = e.Value?.ToString() ?? string.Empty" />
+                                </td>
+                                <td>
+                                    <input class="form-control"
+                                           value="@_editItemPrice[m.Id]"
+                                           @oninput="e => _editItemPrice[m.Id] = e.Value?.ToString() ?? string.Empty" />
+                                </td>
+                                <td>
+                                    <textarea class="form-control" rows="2" placeholder="Description"
+                                              @oninput="e => _editItemDesc[m.Id] = e.Value?.ToString() ?? string.Empty">@_editItemDesc.GetValueOrDefault(m.Id, m.Description ?? "")</textarea>
+                                </td>
+                                <td>
+                                    <div style="display:flex;flex-direction:column;gap:6px;">
+                                        <InputFile OnChange="e => OnPickImage(e, m.Id)" />
+                                        @if (_uploadingItemId == m.Id)
+                                        {
+                                            <small style="color:#6b7280">Uploading…</small>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(_editItemImage.GetValueOrDefault(m.Id)))
+                                        {
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <img src="@_editItemImage[m.Id]" alt="img" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" />
+                                                <a href="@_editItemImage[m.Id]" target="_blank"><small>@_editItemImage[m.Id]</small></a>
+                                            </div>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="checkbox"
+                                           checked="@_editItemAvail[m.Id]"
+                                           @onchange="e => _editItemAvail[m.Id] = ToBool(e.Value)" />
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveItem(m.Id)">Save</button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => CancelItem(m.Id)">Cancel</button>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>@m.Name</td>
+                                <td>@m.Price.ToString("0.00")</td>
+                                <td style="white-space:pre-wrap">@m.Description</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(m.ImageUrl))
                                     {
                                         <div style="display:flex;align-items:center;gap:8px;">
-                                            <img src="@_editItemImage[m.Id]" alt="img" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" />
-                                            <a href="@_editItemImage[m.Id]" target="_blank"><small>@_editItemImage[m.Id]</small></a>
+                                            <img src="@m.ImageUrl" alt="img" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" />
+                                            <a href="@m.ImageUrl" target="_blank"><small>@m.ImageUrl</small></a>
                                         </div>
                                     }
-                                </div>
-                            </td>
-                            <td>
-                                <input type="checkbox"
-                                       checked="@_editItemAvail[m.Id]"
-                                       @onchange="e => _editItemAvail[m.Id] = ToBool(e.Value)" />
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-success" @onclick="() => SaveItem(m.Id)">Save</button>
-                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => CancelItem(m.Id)">Cancel</button>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>@m.Name</td>
-                            <td>@m.Price.ToString("0.00")</td>
-                            <td style="white-space:pre-wrap">@m.Description</td>
-                            <td>
-                                @if (!string.IsNullOrWhiteSpace(m.ImageUrl))
-                                {
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <img src="@m.ImageUrl" alt="img" style="width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" />
-                                        <a href="@m.ImageUrl" target="_blank"><small>@m.ImageUrl</small></a>
-                                    </div>
-                                }
-                            </td>
-                            <td><input type="checkbox" checked="@m.IsAvailable" disabled /></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" @onclick="() => StartItem(m)">Edit</button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteItem(m.Id)">Delete</button>
-                            </td>
-                        }
-                    </tr>
-                }
-                </tbody>
-            </table>
+                                </td>
+                                <td><input type="checkbox" checked="@m.IsAvailable" disabled /></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => StartItem(m)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteItem(m.Id)">Delete</button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 }
+
+<style>
+/* example – keep whatever you already have, just escape at-rules */
+.table td,.table th{vertical-align:middle}
+
+/* collapse columns on narrow screens */
+@@media (max-width: 700px){
+  .table thead{display:none}
+  .table tr{display:block;margin-bottom:12px;border:1px solid #e5e7eb;border-radius:10px;padding:8px}
+  .table td{display:flex;justify-content:space-between;gap:12px;border:0}
+  .table td::before{content:attr(data-label);color:#6b7280;font-weight:600}
+}
+</style>
+
 
 @code {
     // --- state
@@ -166,13 +189,16 @@ else
     }
 
     private async Task Load()
-    {
-        _cats = await Db.MenuCategories.Include(c => c.Items)
-                   .Where(c => c.RestaurantId == _restaurantId)
-                   .OrderBy(c => c.Name).ToListAsync();
-        _msg = "";
-        StateHasChanged();
-    }
+{
+    _cats = await Db.MenuCategories
+        .Include(c => c.Items)
+        .Where(c => c.RestaurantId == _restaurantId)
+        .OrderBy(c => c.SortOrder)      // <- order by SortOrder
+        .ThenBy(c => c.Id)
+        .ToListAsync();
+    _msg = "";
+    StateHasChanged();
+}
 
     private async Task OnRestaurantChange(ChangeEventArgs e)
     {
@@ -206,14 +232,56 @@ else
         _msg = "Category deleted.";
     }
     private async Task NewCategory()
+{
+    var max = await Db.MenuCategories
+        .Where(x => x.RestaurantId == _restaurantId)
+        .Select(x => (int?)x.SortOrder)
+        .MaxAsync() ?? 0;
+
+    Db.MenuCategories.Add(new MenuCategory {
+        Name = "New Category",
+        RestaurantId = _restaurantId,
+        SortOrder = max + 1
+    });
+    await Db.SaveChangesAsync();
+    await Load();
+    _msg = "Category created.";
+}
+
+    // NEW: move category up/down by swapping SortOrder with neighbor
+    private async Task MoveCat(int catId, int delta) // delta = -1 up, +1 down
+{
+    var cats = await Db.MenuCategories
+        .Where(c => c.RestaurantId == _restaurantId)
+        .OrderBy(c => c.SortOrder).ThenBy(c => c.Id)
+        .ToListAsync();
+
+    var i = cats.FindIndex(c => c.Id == catId);
+    if (i < 0) return;
+
+    var j = i + delta;
+    if (j < 0 || j >= cats.Count) return; // already at edge
+
+    // swap
+    (cats[i].SortOrder, cats[j].SortOrder) = (cats[j].SortOrder, cats[i].SortOrder);
+
+    await Db.SaveChangesAsync();
+    await Load();
+    _msg = "Category re-ordered.";
+}
+
+    private bool IsFirst(int id) => _cats.Count > 0 && _cats[0].Id == id;
+    private bool IsLast(int id)  => _cats.Count > 0 && _cats[^1].Id == id;
+
+    private async Task<int> NextCategorySort(int restaurantId)
     {
-        Db.MenuCategories.Add(new MenuCategory { Name = "New Category", RestaurantId = _restaurantId });
-        await Db.SaveChangesAsync();
-        await Load();
-        _msg = "Category created.";
+        var last = await Db.MenuCategories
+            .Where(c => c.RestaurantId == restaurantId)
+            .MaxAsync(c => (int?)c.SortOrder) ?? 0;
+        return last + 10; // leave gaps for future inserts
     }
 
-    // ---- item helpers
+    // ---- item helpers (unchanged)
     private bool IsEditingItem(int id) => _editItems.Contains(id);
     private void StartItem(MenuItem m)
     {
@@ -266,7 +334,7 @@ else
         _msg = "Item created.";
     }
 
-    // ---- upload
+    // ---- upload (unchanged)
     private async Task OnPickImage(InputFileChangeEventArgs e, int itemId)
     {
         try

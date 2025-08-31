@@ -1,11 +1,20 @@
 @inherits LayoutComponentBase
 
 <nav class="navbar navbar-dark bg-dark">
-  <div class="container-fluid">
+  <div class="container">
     <span class="navbar-brand mb-0 h1">Kitchen Display</span>
+
+    <!-- simple legend, styled by fresh.css -->
+    <div class="d-flex gap-2">
+      <span class="badge dot submitted">Submitted</span>
+      <span class="badge dot inprogress">In Progress</span>
+      <span class="badge dot ready">Ready</span>
+    </div>
   </div>
 </nav>
 
-<main class="container-fluid p-3">
-  @Body
+<main class="container my-3">
+  <div class="card">
+    @Body
+  </div>
 </main>

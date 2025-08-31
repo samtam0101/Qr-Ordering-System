@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "XHf0pPNZaRmgelgqQaP7qSil5GJVPz75AHA9slKHtVY=",
+  "Hash": "6UrILcvagwmNe3rBHTwpCINqBI8fRwQ+78RGgzfvZnA=",
   "Source": "GuestApp",
   "BasePath": "_content/GuestApp",
   "Mode": "Default",
@@ -16,6 +16,25 @@
     }
   ],
   "Assets": [
+    {
+      "Identity": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/css/fresh.css",
+      "SourceId": "GuestApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/",
+      "BasePath": "_content/GuestApp",
+      "RelativePath": "css/fresh.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/css/fresh.css"
+    },
     {
       "Identity": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/css/menu-enhanced.css",
       "SourceId": "GuestApp",

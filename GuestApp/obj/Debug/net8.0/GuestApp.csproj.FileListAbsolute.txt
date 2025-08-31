@@ -103,6 +103,7 @@
 /Users/samir/Downloads/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.genruntimeconfig.cache
 /Users/samir/Downloads/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/ref/GuestApp.dll
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/appsettings.json
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/appsettings.Production.json
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/GuestApp.staticwebassets.runtime.json
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/GuestApp
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/GuestApp.deps.json
@@ -192,6 +193,7 @@
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.MvcApplicationPartsAssemblyInfo.cache
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.RazorAssemblyInfo.cache
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.RazorAssemblyInfo.cs
+/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.sourcelink.json
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/staticwebassets.build.json
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/staticwebassets.development.json
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/staticwebassets/msbuild.GuestApp.Microsoft.AspNetCore.StaticWebAssets.props
@@ -206,5 +208,3 @@
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.pdb
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.genruntimeconfig.cache
 /Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/ref/GuestApp.dll
-/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/bin/Debug/net8.0/appsettings.Production.json
-/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/obj/Debug/net8.0/GuestApp.sourcelink.json

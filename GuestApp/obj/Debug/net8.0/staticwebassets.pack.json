@@ -1,6 +1,10 @@
 {
   "Files": [
     {
+      "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/css/fresh.css",
+      "PackagePath": "staticwebassets/css/fresh.css"
+    },
+    {
       "Id": "/Users/samir/Desktop/QrOrderingSuite_v2_MultiProject_Postgres/GuestApp/wwwroot/css/menu-enhanced.css",
       "PackagePath": "staticwebassets/css/menu-enhanced.css"
     },

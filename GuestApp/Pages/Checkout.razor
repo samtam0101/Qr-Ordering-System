@@ -1,72 +1,161 @@
 @page "/checkout/{RestaurantSlug}/{TableCode}"
 @inject GuestApp.Services.CartService Cart
 @inject NavigationManager Nav
+@inject IConfiguration Config
 
-<h3>Checkout</h3>
+<h3 style="display:flex;align-items:center;gap:10px">
+  <button title="Back" style="border:none;background:#f4f4f5;width:34px;height:34px;border-radius:999px;cursor:pointer" @onclick="GoBack">←</button>
+  Checkout
+</h3>
 
-@if (_order is null)
+@if (_items.Count == 0)
 {
-    <p>Your cart is empty.</p>
+    <div style="margin-top:10px">Your cart is empty.</div>
 }
 else
 {
-    <table>
-        <thead>
-            <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
-        </thead>
-        <tbody>
-        @foreach (var it in _order.Items ?? new())
-        {
-            <tr>
-                <td>@it.MenuItem?.Name</td>
-                <td>@it.Quantity</td>
-                <td>@it.UnitPrice.ToString("0.00")</td>
-                <td>@(it.UnitPrice * it.Quantity).ToString("0.00")</td>
-            </tr>
-        }
-        </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="3" style="text-align:right;font-weight:700;">Total</td>
-                <td>@Cart.ComputeTotal(_order).ToString("0.00")</td>
-            </tr>
-        </tfoot>
-    </table>
+<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.05);padding:12px;max-width:980px">
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:#fafafa">
+        <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb">Item</th>
+        <th style="text-align:center;padding:10px;border-bottom:1px solid #e5e7eb;width:140px">Qty</th>
+        <th style="text-align:right;padding:10px;border-bottom:1px solid #e5e7eb;width:120px">Price</th>
+        <th style="text-align:right;padding:10px;border-bottom:1px solid #e5e7eb;width:140px">Total</th>
+        <th style="width:60px;border-bottom:1px solid #e5e7eb"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var it in _items)
+      {
+        <tr>
+          <td style="padding:10px;display:flex;align-items:center;gap:10px">
+            <img src="@Asset(it.ThumbUrl)" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;background:#f6f6f6" />
+            <span>@it.Name</span>
+          </td>
+          <td style="padding:10px;text-align:center">
+            <div style="display:inline-flex;align-items:center;gap:6px">
+              <button class="qty" @onclick="() => ChangeQty(it.MenuItemId, -1)">−</button>
+              <span>@it.Qty</span>
+              <button class="qty" @onclick="() => ChangeQty(it.MenuItemId, +1)">+</button>
+            </div>
+          </td>
+          <td style="padding:10px;text-align:right">@it.Price.ToString("0.00")</td>
+          <td style="padding:10px;text-align:right">@((it.Price * it.Qty).ToString("0.00"))</td>
+          <td style="padding:10px;text-align:right">
+            <button class="danger" title="Remove" @onclick="() => Remove(it.MenuItemId)">✕</button>
+          </td>
+        </tr>
+      }
+      <tr>
+        <td colspan="3" style="padding:10px;text-align:right;font-weight:700">Total</td>
+        <td style="padding:10px;text-align:right;font-weight:700">@_total.ToString("0.00")</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
 
-    <div style="margin-top:12px;">
-        <button @onclick="Place">Place order (demo pay)</button>
-    </div>
+  <div style="display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap">
+    <div style="font-weight:700">Payment:</div>
+    <button type="button" class="pill@( _payment=="cash" ? " active" : "" )" @onclick="SetPaymentCash">💵 Cash</button>
+    <button type="button" class="pill@( _payment=="pos"  ? " active" : "" )" @onclick="SetPaymentPos">💳 POS (Visa/Mastercard)</button>
+  </div>
 
-    @if (!string.IsNullOrEmpty(_msg))
-    {
-        <p>@_msg</p>
-    }
+  <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="primary" @onclick="PlaceOrder">Place order</button>
+    <button class="ghost" @onclick="GoBack">Back to cart</button>
+  </div>
+</div>
 }
 
-@code {
+<style>
+.qty{width:30px;height:30px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+.danger{border:none;background:#fee2e2;color:#991b1b;border-radius:8px;width:30px;height:30px;cursor:pointer}
+.primary{border:none;background:#111827;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.ghost{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.pill{border:1px solid #e5e7eb;border-radius:999px;background:#fff;padding:8px 12px;cursor:pointer}
+.pill.active{background:#111827;color:#fff;border-color:#111827}
+</style>
+
+@code{
     [Parameter] public string? RestaurantSlug { get; set; }
     [Parameter] public string? TableCode { get; set; }
 
-    private Infrastructure.Models.Order? _order;
-    private string? _msg;
+    private sealed class Line { public int MenuItemId; public string? Name; public decimal Price; public int Qty; public string? ThumbUrl; }
+    private List<Line> _items = new();
+    private decimal _total;
+    private string _payment = "cash"; // "cash" | "pos"
 
     protected override async Task OnParametersSetAsync()
     {
         await Cart.InitAsync(RestaurantSlug, TableCode);
-        _order = await Cart.GetDraftAsync();
+        await Load();
     }
 
-    private async Task Place()
+    private async Task Load()
+{
+    _items.Clear();
+
+    var draft = await Cart.GetDraftAsync();
+    if (draft != null)
     {
-        try
+        var items = draft.GetType().GetProperty("Items")?.GetValue(draft) as System.Collections.IEnumerable
+                    ?? System.Array.Empty<object>();
+
+        foreach (var raw in items)
         {
-            await Cart.PlaceOrderAsync();
-            _msg = "Order placed! You can track it in 'My Orders'.";
-            Nav.NavigateTo($"/orders/{RestaurantSlug}/{TableCode}");
+            dynamic it = raw!;
+            int id = (int)it.MenuItemId;
+            int qty = (int)it.Quantity;
+            string name  = (string?)(it.MenuItem?.Name)  ?? (string?)it.Name  ?? $"Item {id}";
+            decimal price = (decimal?)it.MenuItem?.Price ?? (decimal?)it.Price ?? 0m;
+
+            string thumb = (string?)(it.MenuItem?.ImageUrl) ?? "/uploads/placeholder.png";
+
+            _items.Add(new Line { MenuItemId = id, Name = name, Price = price, Qty = qty, ThumbUrl = thumb });
         }
-        catch (Exception ex)
-        {
-            _msg = ex.Message;
-        }
+    }
+
+    _total = _items.Sum(x => x.Price * x.Qty);
+    StateHasChanged();
+}
+
+
+    private async Task ChangeQty(int menuItemId, int delta)
+    {
+        if (delta > 0) await Cart.AddItemAsync(menuItemId, 1);
+        else           await Cart.RemoveItemAsync(menuItemId, 1);
+        await Load();
+    }
+
+    private async Task Remove(int menuItemId)
+    {
+        var line = _items.FirstOrDefault(x => x.MenuItemId == menuItemId);
+        if (line != null) await Cart.RemoveItemAsync(menuItemId, line.Qty);
+        await Load();
+    }
+
+    private void SetPaymentCash() => _payment = "cash";
+    private void SetPaymentPos()  => _payment = "pos";
+
+    private async Task PlaceOrder()
+    {
+        await Cart.PlaceOrderAsync(); // keep your existing flow; extend later to persist _payment if needed
+        Nav.NavigateTo($"/orders/{RestaurantSlug}/{TableCode}");
+    }
+
+    private void GoBack() => Nav.NavigateTo($"/cart/{RestaurantSlug}/{TableCode}");
+
+    private string Asset(string? path)
+    {
+        if (!string.IsNullOrWhiteSpace(path) &&
+            (path.StartsWith("http://") || path.StartsWith("https://"))) return path!;
+        var baseUrl = (Config["AdminPublicBase"] ?? "").TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(baseUrl)) return "/uploads/placeholder.png";
+        var p = (path ?? "").Replace("\\", "/");
+        if (p.Contains("/uploads/")) p = p[(p.IndexOf("/uploads/", StringComparison.Ordinal))..];
+        else if (p.Contains("uploads/")) p = "/" + p[(p.IndexOf("uploads/", StringComparison.Ordinal))..];
+        else if (!string.IsNullOrEmpty(p)) p = "/uploads/" + p; else p = "/uploads/placeholder.png";
+        return $"{baseUrl}{p}";
     }
 }

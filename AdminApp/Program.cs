@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Http.Features; 
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.ResponseCompression; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +13,42 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpClient();
+builder.Services.AddControllers();
 builder.Services.Configure<FormOptions>(o =>                
 {
-    o.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50 MB
+    o.MultipartBodyLengthLimit = 100 * 1024 * 1024; // 100 MB
 });
+// IMPORTANT: Blazor/SignalR timeouts & sizes
+builder.Services
+    .AddServerSideBlazor()
+    .AddHubOptions(o =>
+    {
+        o.ClientTimeoutInterval = TimeSpan.FromSeconds(60);   // client considered disconnected after this quiet period
+        o.KeepAliveInterval = TimeSpan.FromSeconds(15);       // server pings client
+        o.MaximumReceiveMessageSize = 64 * 1024 * 1024;       // 64 MB SignalR message (streams/chunks)
+        o.HandshakeTimeout = TimeSpan.FromSeconds(15);
+    })
+    .AddCircuitOptions(o =>
+    {
+        o.DetailedErrors = true;
+        o.JSInteropDefaultCallTimeout = TimeSpan.FromMinutes(3); // uploads via JS interop get more time
+        o.DisconnectedCircuitMaxRetained = 200;
+        o.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(5);
+    });
+// (optional) compress SignalR payloads
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream" });
+});
+
+// Kestrel request limits (before builder.Build())
+builder.WebHost.ConfigureKestrel(k =>
+{
+    k.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100 MB
+    k.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(3);
+});
+
 
 builder.Services.AddScoped(sp =>
 {
@@ -38,6 +71,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+var webRoot = app.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRoot, "uploads"));
 
 try
 {
@@ -57,7 +92,7 @@ catch (Exception e)
 
 // Middleware
 app.UseStaticFiles();
-
+app.UseResponseCompression();
 // If you’re running HTTPS, keep this. If you run HTTP-only, comment this out.
 // app.UseHttpsRedirection();
 
@@ -65,9 +100,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Blazor endpoints
+app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-app.MapControllers();
 
 // --- Minimal login API (demo) ---
 app.MapPost("/api/login", async (HttpContext ctx) =>
@@ -97,6 +132,29 @@ app.MapPost("/api/login", async (HttpContext ctx) =>
     // Optional: redirect back to login on failure (or keep Unauthorized)
     return Results.Unauthorized();
 });
+app.MapPost("/api/upload", async (IWebHostEnvironment env, HttpRequest req) =>
+{
+    IFormFile? file = req.Form.Files.FirstOrDefault();
+    if (file is null || file.Length == 0) return Results.BadRequest("No file");
+
+    var uploads = Path.Combine(env.WebRootPath, "uploads");
+    Directory.CreateDirectory(uploads);
+
+    var name = $"menu_{Guid.NewGuid():N}{Path.GetExtension(file.FileName)}";
+    var dest = Path.Combine(uploads, name);
+
+    await using var fs = System.IO.File.Create(dest);
+    await file.CopyToAsync(fs);
+
+    // Return web path used by GuestApp
+    return Results.Ok(new { url = $"/uploads/{name}" });
+})
+.DisableAntiforgery()
+.WithName("UploadFile")
+.Accepts<IFormFile>("multipart/form-data")
+.Produces<int>(StatusCodes.Status200OK);
+
+
 app.MapGet("/logout", async (HttpContext ctx) =>
 {
     await ctx.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
